@@ -10,10 +10,14 @@ export class DatabaseService {
     private supabase: SupabaseClient;
 
     constructor(supabaseUrl?: string, supabaseKey?: string) {
-        this.supabase = createClient(
-            supabaseUrl || process.env.SUPABASE_URL || '',
-            supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-        );
+        const url = supabaseUrl || process.env.SUPABASE_URL;
+        const key = supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!url || !key) {
+            throw new Error('Supabase configuration is missing. Please check your environment variables.');
+        }
+
+        this.supabase = createClient(url, key);
     }
 
     public static getInstance(): DatabaseService {
@@ -21,11 +25,6 @@ export class DatabaseService {
             DatabaseService.instance = new DatabaseService();
         }
         return DatabaseService.instance;
-    }
-
-    // Pour les tests
-    public static resetInstance(): void {
-        DatabaseService.instance = undefined as any;
     }
 
     // Getter pour les tests
@@ -92,6 +91,42 @@ export class DatabaseService {
         console.error('Erreur Supabase:', error);
         throw new Error(error.message || 'Erreur de base de données');
     }
+
+    // Méthode de recherche pour récupérer utilisateurs et motos
+    async search(query: string, currentUserId: string, filters?: { userFilter: boolean; motorcycleFilter: boolean }) {
+        const searchTerm = `%${query}%`;
+
+        // Recherche des utilisateurs
+        const usersQuery = filters?.userFilter ?? true; // Si la recherche des utilisateurs est activée
+        const motorcyclesQuery = filters?.motorcycleFilter ?? true; // Si la recherche des motos est activée
+
+        const [users, motorcycles] = await Promise.all([
+            usersQuery ?
+                this.supabase
+                    .from('users')
+                    .select('*')
+                    .ilike('username', searchTerm)
+                    .or('full_name.ilike', searchTerm)
+                    .neq('id', currentUserId) // Exclure l'utilisateur actuel
+                    .limit(10) // Limite à 10 résultats
+                : Promise.resolve({ data: [] }),
+
+            motorcyclesQuery ?
+                this.supabase
+                    .from('motorcycles')
+                    .select('*')
+                    .ilike('brand', searchTerm) // Recherche sur la marque
+                    .ilike('model', searchTerm) // Recherche sur le modèle
+                    .eq('user_id', currentUserId) // Filtrer par user_id
+                    .limit(10) // Limite à 10 résultats
+                : Promise.resolve({ data: [] }),
+        ]);
+
+        return {
+            users: users.data,
+            motorcycles: motorcycles.data,
+        };
+    }
 }
 
-export const dbService = DatabaseService.getInstance(); 
+export const db = DatabaseService.getInstance();

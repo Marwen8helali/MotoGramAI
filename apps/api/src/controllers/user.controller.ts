@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { dbService } from '../services/database.service';
+import { db } from '../services/database.service';
 
 export class UserController {
     static async createUser(req: Request, res: Response) {
@@ -12,7 +12,7 @@ export class UserController {
                 });
             }
 
-            const user = await dbService.createUser(clerkId, {
+            const user = await db.createUser(clerkId, {
                 username,
                 email,
                 fullName,
@@ -31,7 +31,7 @@ export class UserController {
     static async getUserProfile(req: Request, res: Response) {
         try {
             const clerkId = req.params.clerkId;
-            const user = await dbService.getUserByClerkId(clerkId);
+            const user = await db.getUserByClerkId(clerkId);
 
             if (!user) {
                 return res.status(404).json({

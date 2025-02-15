@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { dbService } from '../services/database.service';
+import { db } from '../services/database.service';
 
 export class MotorcycleController {
     static async createMotorcycle(req: Request, res: Response) {
@@ -13,7 +13,7 @@ export class MotorcycleController {
                 });
             }
 
-            const motorcycle = await dbService.createMotorcycle(userId, {
+            const motorcycle = await db.createMotorcycle(userId, {
                 brand,
                 model,
                 year,
@@ -33,7 +33,7 @@ export class MotorcycleController {
     static async getUserMotorcycles(req: Request, res: Response) {
         try {
             const userId = req.params.userId;
-            const motorcycles = await dbService.getUserMotorcycles(userId);
+            const motorcycles = await db.getUserMotorcycles(userId);
 
             res.json(motorcycles);
         } catch (error: any) {
